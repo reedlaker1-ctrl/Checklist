@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Checklist">
+<meta name="theme-color" content="#0f1115">
+<meta name="format-detection" content="telephone=no">
+<title>Checklist</title>
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiQ2hlY2tsaXN0Iiwic2hvcnRfbmFtZSI6IkNoZWNrbGlzdCIsInN0YXJ0X3VybCI6Ii4iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjMGYxMTE1IiwidGhlbWVfY29sb3IiOiIjMGYxMTE1In0=">
+<style>
+  :root{
+    --bg:#f4f5f7;
+    --card:#ffffff;
+    --text:#1a1c20;
+    --muted:#6b7280;
+    --border:#e6e7eb;
+    --accent:#3b82f6;
+    --danger:#ef4444;
+    --warn:#f59e0b;
+    --track:#eceef1;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0f1115;
+      --card:#1a1d23;
+      --text:#f2f3f5;
+      --muted:#9aa0aa;
+      --border:#2a2e36;
+      --accent:#5b9dff;
+      --danger:#f87171;
+      --warn:#fbbf24;
+      --track:#262a32;
+    }
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  header.top{
+    position:sticky;top:0;z-index:5;
+    background:var(--bg);
+    padding:calc(env(safe-area-inset-top) + 18px) 16px 10px;
+    border-bottom:1px solid var(--border);
+  }
+  header.top h1{
+    margin:0;
+    font-size:22px;
+    font-weight:700;
+  }
+  header.top .summary{
+    margin-top:4px;
+    font-size:13px;
+    color:var(--muted);
+  }
+  header.top .summary .overdue-count{
+    color:var(--danger);
+    font-weight:600;
+  }
+  main{
+    max-width:560px;
+    margin:0 auto;
+    padding:14px 12px 100px;
+  }
+  .empty-state{
+    text-align:center;
+    color:var(--muted);
+    padding:60px 20px;
+    font-size:15px;
+  }
+  .class-card{
+    background:var(--card);
+    border-radius:14px;
+    margin-bottom:14px;
+    padding:14px 14px 12px;
+    border-left:5px solid var(--class-color, var(--accent));
+    box-shadow:0 1px 2px rgba(0,0,0,0.04);
+  }
+  .class-header{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .class-name{
+    font-size:16px;
+    font-weight:700;
+    flex:1;
+    min-width:0;
+    overflow-wrap:anywhere;
+  }
+  .class-progress-text{
+    font-size:12px;
+    color:var(--muted);
+    white-space:nowrap;
+  }
+  .icon-btn{
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-size:16px;
+    padding:6px;
+    line-height:1;
+    cursor:pointer;
+    border-radius:8px;
+  }
+  .icon-btn:active{background:var(--track);}
+  .progress-track{
+    height:5px;
+    background:var(--track);
+    border-radius:3px;
+    margin:8px 0 10px;
+    overflow:hidden;
+  }
+  .progress-fill{
+    height:100%;
+    background:var(--class-color, var(--accent));
+    border-radius:3px;
+    transition:width .2s ease;
+  }
+  ul.assignment-list{
+    list-style:none;
+    margin:0;
+    padding:0;
+  }
+  .assignment-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:9px 0;
+    border-top:1px solid var(--border);
+  }
+  ul.assignment-list li:first-child{border-top:none;}
+  .check-wrap{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:26px;height:26px;
+    flex-shrink:0;
+    cursor:pointer;
+  }
+  .check-wrap input{
+    position:absolute;
+    opacity:0;
+    width:26px;height:26px;
+    margin:0;
+    cursor:pointer;
+  }
+  .checkbox-visual{
+    width:22px;height:22px;
+    border-radius:7px;
+    border:2px solid var(--border);
+    display:flex;align-items:center;justify-content:center;
+    font-size:14px;
+    color:#fff;
+  }
+  .check-wrap input:checked + .checkbox-visual{
+    background:var(--accent);
+    border-color:var(--accent);
+  }
+  .check-wrap input:checked + .checkbox-visual::after{
+    content:"✓";
+  }
+  .assignment-title{
+    flex:1;
+    min-width:0;
+    font-size:15px;
+    overflow-wrap:anywhere;
+  }
+  .assignment-row.done .assignment-title{
+    color:var(--muted);
+    text-decoration:line-through;
+  }
+  .assignment-row.done .due-badge{opacity:.5;}
+  .due-badge{
+    font-size:11.5px;
+    padding:3px 7px;
+    border-radius:6px;
+    background:var(--track);
+    color:var(--muted);
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  .due-badge.overdue{
+    background:rgba(239,68,68,0.15);
+    color:var(--danger);
+    font-weight:600;
+  }
+  .due-badge.today{
+    background:rgba(245,158,11,0.18);
+    color:var(--warn);
+    font-weight:600;
+  }
+  .flag-btn{
+    background:none;
+    border:none;
+    font-size:17px;
+    color:var(--border);
+    padding:4px;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .flag-btn.active{color:var(--warn);}
+  .delete-btn{
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-size:15px;
+    padding:4px 2px 4px 4px;
+    cursor:pointer;
+    flex-shrink:0;
+    opacity:.6;
+  }
+  form.quick-add{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    margin-top:10px;
+    padding-top:10px;
+    border-top:1px dashed var(--border);
+  }
+  form.quick-add input[type="text"]{
+    flex:1;
+    min-width:0;
+    border:none;
+    background:var(--track);
+    border-radius:9px;
+    padding:9px 10px;
+    font-size:14px;
+    color:var(--text);
+  }
+  form.quick-add input[type="date"]{
+    border:none;
+    background:var(--track);
+    border-radius:9px;
+    padding:7px 6px;
+    font-size:12.5px;
+    color:var(--text);
+    width:118px;
+    flex-shrink:0;
+  }
+  form.quick-add .flag-toggle{
+    border:none;
+    background:var(--track);
+    border-radius:9px;
+    width:34px;height:34px;
+    font-size:16px;
+    color:var(--border);
+    flex-shrink:0;
+    cursor:pointer;
+  }
+  form.quick-add .flag-toggle.active{color:var(--warn);}
+  form.quick-add button[type="submit"]{
+    border:none;
+    background:var(--accent);
+    color:#fff;
+    border-radius:9px;
+    width:34px;height:34px;
+    font-size:18px;
+    line-height:1;
+    flex-shrink:0;
+    cursor:pointer;
+  }
+  input,button{font-family:inherit;}
+  form#add-class-form{
+    display:flex;
+    gap:8px;
+    margin-top:6px;
+  }
+  form#add-class-form input{
+    flex:1;
+    border:1px solid var(--border);
+    background:var(--card);
+    color:var(--text);
+    border-radius:10px;
+    padding:11px 12px;
+    font-size:14px;
+  }
+  form#add-class-form button{
+    border:none;
+    background:var(--accent);
+    color:#fff;
+    border-radius:10px;
+    padding:0 16px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1>Checklist</h1>
+  <div class="summary" id="summary"></div>
+</header>
+
+<main>
+  <div id="classes"></div>
+  <form id="add-class-form">
+    <input type="text" id="new-class-name" placeholder="Add a class…" required maxlength="40">
+    <button type="submit">Add</button>
+  </form>
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  var STORAGE_KEY = "checklist-app-v1";
+  var COLORS = ["#3b82f6","#ef4444","#10b981","#f59e0b","#8b5cf6","#ec4899","#14b8a6","#f97316"];
+  var MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+  var state = load();
+
+  function load(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        var parsed = JSON.parse(raw);
+        if(parsed && Array.isArray(parsed.classes)) return parsed;
+      }
+    }catch(e){}
+    return { classes: [] };
+  }
+
+  function save(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+  }
+
+  function uid(){
+    return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+  }
+
+  function todayStr(){
+    var d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+  }
+
+  function formatDate(s){
+    if(!s) return "";
+    var parts = s.split("-");
+    var y = Number(parts[0]), m = Number(parts[1]), d = Number(parts[2]);
+    return MONTHS[m-1] + " " + d;
+  }
+
+  function dueStatus(dueDate, done){
+    if(!dueDate || done) return "normal";
+    var t = todayStr();
+    if(dueDate < t) return "overdue";
+    if(dueDate === t) return "today";
+    return "normal";
+  }
+
+  function sortAssignments(list){
+    return list.slice().sort(function(a,b){
+      if(a.done !== b.done) return a.done ? 1 : -1;
+      if(a.flagged !== b.flagged) return a.flagged ? -1 : 1;
+      var ad = a.dueDate || "9999-99-99";
+      var bd = b.dueDate || "9999-99-99";
+      if(ad !== bd) return ad < bd ? -1 : 1;
+      return a.createdAt - b.createdAt;
+    });
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+
+  function render(){
+    var container = document.getElementById("classes");
+    var summary = document.getElementById("summary");
+
+    if(state.classes.length === 0){
+      container.innerHTML = '<div class="empty-state">Add a class below to start your checklist.</div>';
+      summary.textContent = "";
+      return;
+    }
+
+    var totalPending = 0, totalOverdue = 0;
+
+    var html = state.classes.map(function(cls){
+      var sorted = sortAssignments(cls.assignments);
+      var doneCount = cls.assignments.filter(function(a){return a.done;}).length;
+      var total = cls.assignments.length;
+      var pct = total ? Math.round((doneCount/total)*100) : 0;
+
+      var rows = sorted.map(function(a){
+        var status = dueStatus(a.dueDate, a.done);
+        var badge = a.dueDate
+          ? '<span class="due-badge ' + status + '">' + escapeHtml(formatDate(a.dueDate)) + '</span>'
+          : "";
+        totalPending += a.done ? 0 : 1;
+        if(status === "overdue") totalOverdue++;
+        return (
+          '<li class="assignment-row ' + (a.done ? "done" : "") + '" data-class-id="' + cls.id + '" data-assignment-id="' + a.id + '">' +
+            '<label class="check-wrap">' +
+              '<input type="checkbox" class="toggle-done" ' + (a.done ? "checked" : "") + '>' +
+              '<span class="checkbox-visual"></span>' +
+            '</label>' +
+            '<span class="assignment-title">' + escapeHtml(a.title) + '</span>' +
+            badge +
+            '<button type="button" class="flag-btn ' + (a.flagged ? "active" : "") + '" aria-label="Priority">★</button>' +
+            '<button type="button" class="delete-btn" aria-label="Delete">✕</button>' +
+          '</li>'
+        );
+      }).join("");
+
+      return (
+        '<section class="class-card" style="--class-color:' + cls.color + '" data-class-id="' + cls.id + '">' +
+          '<div class="class-header">' +
+            '<div class="class-name">' + escapeHtml(cls.name) + '</div>' +
+            '<div class="class-progress-text">' + doneCount + '/' + total + '</div>' +
+            '<button type="button" class="icon-btn delete-class" aria-label="Delete class">✕</button>' +
+          '</div>' +
+          '<div class="progress-track"><div class="progress-fill" style="width:' + pct + '%"></div></div>' +
+          '<ul class="assignment-list">' + rows + '</ul>' +
+          '<form class="quick-add" data-class-id="' + cls.id + '">' +
+            '<input type="text" class="qa-title" placeholder="Add assignment…" required maxlength="80">' +
+            '<input type="date" class="qa-date">' +
+            '<button type="button" class="flag-toggle" aria-pressed="false">★</button>' +
+            '<button type="submit">+</button>' +
+          '</form>' +
+        '</section>'
+      );
+    }).join("");
+
+    container.innerHTML = html;
+
+    if(totalPending === 0){
+      summary.textContent = "All caught up.";
+    }else{
+      summary.textContent = totalPending + (totalPending === 1 ? " task left" : " tasks left") +
+        (totalOverdue > 0 ? " · " : "");
+      if(totalOverdue > 0){
+        var span = document.createElement("span");
+        span.className = "overdue-count";
+        span.textContent = totalOverdue + (totalOverdue === 1 ? " overdue" : " overdue");
+        summary.appendChild(span);
+      }
+    }
+  }
+
+  function addClass(name){
+    state.classes.push({
+      id: uid(),
+      name: name,
+      color: COLORS[state.classes.length % COLORS.length],
+      assignments: []
+    });
+    save();
+    render();
+  }
+
+  function deleteClass(classId){
+    var cls = state.classes.find(function(c){return c.id === classId;});
+    if(cls && cls.assignments.length > 0){
+      if(!confirm('Delete "' + cls.name + '" and all its assignments?')) return;
+    }
+    state.classes = state.classes.filter(function(c){return c.id !== classId;});
+    save();
+    render();
+  }
+
+  function addAssignment(classId, title, dueDate, flagged){
+    var cls = state.classes.find(function(c){return c.id === classId;});
+    if(!cls) return;
+    cls.assignments.push({
+      id: uid(),
+      title: title,
+      dueDate: dueDate || "",
+      flagged: !!flagged,
+      done: false,
+      createdAt: Date.now()
+    });
+    save();
+    render();
+  }
+
+  function toggleDone(classId, assignmentId){
+    var cls = state.classes.find(function(c){return c.id === classId;});
+    if(!cls) return;
+    var a = cls.assignments.find(function(x){return x.id === assignmentId;});
+    if(!a) return;
+    a.done = !a.done;
+    save();
+    render();
+  }
+
+  function toggleFlag(classId, assignmentId){
+    var cls = state.classes.find(function(c){return c.id === classId;});
+    if(!cls) return;
+    var a = cls.assignments.find(function(x){return x.id === assignmentId;});
+    if(!a) return;
+    a.flagged = !a.flagged;
+    save();
+    render();
+  }
+
+  function deleteAssignment(classId, assignmentId){
+    var cls = state.classes.find(function(c){return c.id === classId;});
+    if(!cls) return;
+    cls.assignments = cls.assignments.filter(function(x){return x.id !== assignmentId;});
+    save();
+    render();
+  }
+
+  document.getElementById("add-class-form").addEventListener("submit", function(e){
+    e.preventDefault();
+    var input = document.getElementById("new-class-name");
+    var name = input.value.trim();
+    if(!name) return;
+    addClass(name);
+    input.value = "";
+  });
+
+  document.getElementById("classes").addEventListener("click", function(e){
+    var deleteClassBtn = e.target.closest(".delete-class");
+    if(deleteClassBtn){
+      var card = e.target.closest(".class-card");
+      deleteClass(card.getAttribute("data-class-id"));
+      return;
+    }
+
+    var flagBtn = e.target.closest(".flag-btn");
+    if(flagBtn){
+      var row = e.target.closest(".assignment-row");
+      toggleFlag(row.getAttribute("data-class-id"), row.getAttribute("data-assignment-id"));
+      return;
+    }
+
+    var deleteBtn = e.target.closest(".delete-btn");
+    if(deleteBtn){
+      var row2 = e.target.closest(".assignment-row");
+      deleteAssignment(row2.getAttribute("data-class-id"), row2.getAttribute("data-assignment-id"));
+      return;
+    }
+
+    var quickFlag = e.target.closest(".flag-toggle");
+    if(quickFlag){
+      quickFlag.classList.toggle("active");
+      quickFlag.setAttribute("aria-pressed", quickFlag.classList.contains("active"));
+      return;
+    }
+  });
+
+  document.getElementById("classes").addEventListener("change", function(e){
+    if(e.target.classList.contains("toggle-done")){
+      var row = e.target.closest(".assignment-row");
+      toggleDone(row.getAttribute("data-class-id"), row.getAttribute("data-assignment-id"));
+    }
+  });
+
+  document.getElementById("classes").addEventListener("submit", function(e){
+    var form = e.target.closest(".quick-add");
+    if(!form) return;
+    e.preventDefault();
+    var classId = form.getAttribute("data-class-id");
+    var titleInput = form.querySelector(".qa-title");
+    var dateInput = form.querySelector(".qa-date");
+    var flagToggle = form.querySelector(".flag-toggle");
+    var title = titleInput.value.trim();
+    if(!title) return;
+    addAssignment(classId, title, dateInput.value, flagToggle.classList.contains("active"));
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
