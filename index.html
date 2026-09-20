@@ -390,8 +390,9 @@
 
     var html = state.classes.map(function(cls){
       var sorted = sortAssignments(cls.assignments);
-      var doneCount = cls.assignments.filter(function(a){return a.done;}).length;
-      var total = cls.assignments.length;
+      var starred = cls.assignments.filter(function(a){return a.flagged;});
+      var doneCount = starred.filter(function(a){return a.done;}).length;
+      var total = starred.length;
       var pct = total ? Math.round((doneCount/total)*100) : 0;
 
       var rows = sorted.map(function(a){
@@ -399,8 +400,10 @@
         var badge = a.dueDate
           ? '<span class="due-badge ' + status + '">' + escapeHtml(formatDate(a.dueDate)) + '</span>'
           : "";
-        totalPending += a.done ? 0 : 1;
-        if(status === "overdue") totalOverdue++;
+        if(a.flagged){
+          totalPending += a.done ? 0 : 1;
+          if(status === "overdue") totalOverdue++;
+        }
         return (
           '<li class="assignment-row ' + (a.done ? "done" : "") + '" data-class-id="' + cls.id + '" data-assignment-id="' + a.id + '">' +
             '<label class="check-wrap">' +
@@ -437,9 +440,9 @@
     container.innerHTML = html;
 
     if(totalPending === 0){
-      summary.textContent = "All caught up.";
+      summary.textContent = "No starred tasks left.";
     }else{
-      summary.textContent = totalPending + (totalPending === 1 ? " task left" : " tasks left") +
+      summary.textContent = totalPending + (totalPending === 1 ? " starred task left" : " starred tasks left") +
         (totalOverdue > 0 ? " · " : "");
       if(totalOverdue > 0){
         var span = document.createElement("span");
