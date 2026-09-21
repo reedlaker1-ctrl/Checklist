@@ -376,6 +376,39 @@
     });
   }
 
+  // The most recent 3:00 AM local time at or before `ts`.
+  function threeAmBoundary(ts){
+    var d = new Date(ts);
+    var boundary = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 3, 0, 0, 0);
+    if(ts < boundary.getTime()) boundary.setDate(boundary.getDate() - 1);
+    return boundary.getTime();
+  }
+
+  function sweepIfNeeded(){
+    var boundary = threeAmBoundary(Date.now());
+    if(state.lastSweepBoundary === undefined){
+      state.lastSweepBoundary = boundary;
+      save();
+      return;
+    }
+    if(boundary > state.lastSweepBoundary){
+      state.classes.forEach(function(cls){
+        cls.assignments.forEach(function(a){
+          if(a.done && !a.archived){
+            a.archived = true;
+            a.archivedAt = Date.now();
+          }
+        });
+      });
+      state.lastSweepBoundary = boundary;
+      save();
+    }
+  }
+
+  function visibleAssignments(cls){
+    return cls.assignments.filter(function(a){ return !a.archived; });
+  }
+
   function render(){
     var container = document.getElementById("classes");
     var summary = document.getElementById("summary");
@@ -389,8 +422,9 @@
     var totalPending = 0, totalOverdue = 0;
 
     var html = state.classes.map(function(cls){
-      var sorted = sortAssignments(cls.assignments);
-      var starred = cls.assignments.filter(function(a){return a.flagged;});
+      var visible = visibleAssignments(cls);
+      var sorted = sortAssignments(visible);
+      var starred = visible.filter(function(a){return a.flagged;});
       var doneCount = starred.filter(function(a){return a.done;}).length;
       var total = starred.length;
       var pct = total ? Math.round((doneCount/total)*100) : 0;
@@ -576,7 +610,18 @@
     addAssignment(classId, title, dateInput.value, flagToggle.classList.contains("active"));
   });
 
-  render();
+  function sweepAndRender(){
+    sweepIfNeeded();
+    render();
+  }
+
+  sweepAndRender();
+
+  document.addEventListener("visibilitychange", function(){
+    if(document.visibilityState === "visible") sweepAndRender();
+  });
+  window.addEventListener("pageshow", sweepAndRender);
+  setInterval(sweepAndRender, 5 * 60 * 1000);
 })();
 </script>
 </body>
